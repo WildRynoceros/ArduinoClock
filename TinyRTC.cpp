@@ -5,23 +5,18 @@
 #include <avr/pgmspace.h>
 #include "RTClib.h"
 
-#define DS1307_ADDRESS 0x68
+#define DS1307_ADDRESS 0x68     // Defined in datasheet
 #define SECONDS_PER_DAY 86400L
 
 #define SECONDS_FROM_1970_TO_2000 946684800
 
 #if (ARDUINO >= 100)
-    #include <Arduino.h> // capital A so it is error prone on case-sensitive filesystems
+    #include <Arduino.h>
 #else
     #include <WProgram.h>
 #endif
 
-int i = 0; //The new Wire library needs to take an int when you are sending for the zero register
-
-const uint8_t daysInMonth [] PROGMEM = { 31,28,31,30,31,30,31,31,30,31,30,31 }; //has to be const or compiler compains
-
-
-/////////////////////////////////////////////////////////////////// Utility Code
+// Utility Code ////////////////////////////////////////////////////////////////
 // date2days(uint16_t y, uint8_t m, uint8_t d)
 // Input:
 //      y - year
@@ -59,7 +54,7 @@ static uint8_t conv2d(const char* p) {
     return 10 * v + *++p - '0';
 }
 
-/////////////////////////////////////////////////////////////////////// DateTime
+// DateTime ////////////////////////////////////////////////////////////////////
 // DateTime:DateTime(uint32_t t)
 // Input:
 //      t - Time in seconds

@@ -1,5 +1,28 @@
-// Original code by JeeLabs http://news.jeelabs.org/code/
-// Modified by WildRynoceros
+/*
+    DS1307RTC
+    Written by Ryan Alvaro (WildRynoceros)
+
+    Description:
+    A library meant to use the DS1307 RTC to its fullest
+
+    About the DS1307:
+    The DS1307 is a relatively inexpensive RTC that can be used for timekeeping.
+    However, it has a few other features up its sleeve that do not appear to be
+    utilized by other libraries. Two examples include not using the control
+    register for its square wave output, or accessing the rest of the 56x8 RAM
+    availiable.
+    The 1307 internally is able to correct for leap years, and it has an accurate
+    calendar from the year 2000 through 2100 (and therefore can be used reliably
+    during these years). It is equipped with 64x8 of non-volatile memory, with
+    56x8 RAM appearing to be usable for other purposes after the 7 timekeeping
+    and 1 control register.
+
+    Credits:
+    Modified from JeeLabs original code http://news.jeelabs.org/code/
+
+    Modified:
+    6/10/2017
+*/
 
 // Simple general-purpose date/time class (no TZ / DST / leap second handling!)
 class DateTime {
@@ -32,16 +55,4 @@ class RTC_DS1307 {
         static void adjust(const DateTime& dt);
         uint8_t isrunning(void);
         static DateTime now();
-};
-
-// RTC using the internal millis() clock, has to be initialized before use
-// NOTE: this clock won't be correct once the millis() timer rolls over (>49d?)
-class RTC_Millis {
-    public:
-        static void begin(const DateTime& dt) { adjust(dt); }
-        static void adjust(const DateTime& dt);
-        static DateTime now();
-
-    protected:
-        static long offset;
 };
