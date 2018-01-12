@@ -1,5 +1,5 @@
 /*
-    DS1307RTC
+    TinyRTC
     Written by Ryan Alvaro (WildRynoceros)
 
     Description:
@@ -24,35 +24,62 @@
     6/10/2017
 */
 
-// Simple general-purpose date/time class (no TZ / DST / leap second handling!)
-class DateTime {
+#ifndef TinyRTC_H
+#define TinyRTC_H
+
+
+// General-purpose DateTime for DS1307
+class RTC_Time {
     public:
-        DateTime (uint32_t t =0);
-        DateTime (uint16_t year, uint8_t month, uint8_t day,
-                  uint8_t hour =0, uint8_t min =0, uint8_t sec =0);
-        DateTime (const char* date, const char* time);
-        uint16_t year() const       { return 2000 + yOff; }
-        uint8_t month() const       { return m; }
-        uint8_t day() const         { return d; }
-        uint8_t hour() const        { return hh; }
-        uint8_t minute() const      { return mm; }
-        uint8_t second() const      { return ss; }
-        uint8_t dayOfWeek() const;
+        RTC_Time (uint16_t year = 2000, uint8_t month = 1, uint8_t day = 1,
+                  uint8_t hour = 0, uint8_t min = 0, uint8_t sec = 0);
+        RTC_Time (uint16_t year = 2000, uint8_t month = 1, uint8_t day = 1,
+                  uint8_t dow = 1, uint8_t hour = 0, uint8_t min = 0, uint8_t sec = 0);
+        RTC_Time (char* date, char* time);
 
-        // 32-bit times as seconds since 1/1/2000
-        long secondstime() const;
-        // 32-bit times as seconds since 1/1/1970
-        uint32_t unixtime(void) const;
+        void setYear(uint16_t y);
+        void setMonth(uint8_t m);
+        void setDay(uint8_t d);
+        void setHour(uint8_t h);
+        void setMinute(uint8_t m);
+        void setSecond(uint8_t s);
+        void setDayOfWeek(void);
+        void setDayOfWeek(uint8_t dow);
 
-    protected:
-        uint8_t yOff, m, d, hh, mm, ss;
+        uint16_t getYear(void) const    { return 2000 + Y; }
+        uint8_t getMonth(void) const    { return M; }
+        uint8_t getDay(void) const      { return D; }
+        uint8_t getHour(void) const     { return HH; }
+        uint8_t getMinute(void) const   { return MM; }
+        uint8_t getSecond(void) const   { return SS; }
+        uint8_t getDayOfWeek(void) const { return DOW; }
+        uint16_t getDDayOfWeek(uint16_t y, uint8_t m, uint8_t d) const;
+        uint16_t getDDayOfWeek(void) const;
+
+    private:
+        static uint8_t conv2d(const char* p);
+        const uint8_t DaysInMonth[12] =
+        {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+        uint8_t Y, M, D, DOW, HH, MM, SS;
 };
 
 // RTC based on the DS1307 chip connected via I2C and the Wire library
 class RTC_DS1307 {
     public:
-        static uint8_t begin(void);
-        static void adjust(const DateTime& dt);
-        uint8_t isrunning(void);
-        static DateTime now();
+        RTC_DS1307(void);
+        uint8_t enable(const RTC_Time& t);
+        uint8_t disable(void);
+        uint8_t isRunning(void);
+
+        static uint8_t setTime(const RTC_Time& t);
+        static RTC_Time getTime(void);
+
+        void enableOscillator(uint8_t f);
+        void disableOscillator(uint8_t val);
+    private:
+        static uint8_t bcd2bin(uint8_t val);
+        static uint8_t bin2bcd(uint8_t val);
+        bool enabled;
 };
+
+#endif
