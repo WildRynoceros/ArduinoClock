@@ -12,7 +12,7 @@ Just download this folder and install it into your Arduino's libraries folder.
 Read more about it on the [wiki](https://github.com/WildRynoceros/RTC_DS1307/wiki).
 
 ## Contributors
-This library's core functionality was from JeeLabs original code from [here](http://news.jeelabs.org/code/), but the extended functionality and the RTC_Time class was created by me, WildRynoceros.
+This library's core functionality was from JeeLabs original code from [here](http://news.jeelabs.org/), but the extended functionality and the RTC_Time class was created by me, WildRynoceros. As of writing this README, JeeLabs has since created a library that basically does all I've been wanting to write, but, I still enjoyed writing this code as a spare time project.
 
 ## Future Updates
 First, I'm hoping to do some verification of the code as well as initial cleanup.
