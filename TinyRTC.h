@@ -31,10 +31,9 @@
 // General-purpose DateTime for DS1307
 class RTC_Time {
     public:
-        RTC_Time (uint16_t year = 2000, uint8_t month = 1, uint8_t day = 1,
-                  uint8_t hour = 0, uint8_t min = 0, uint8_t sec = 0);
-        RTC_Time (uint16_t year = 2000, uint8_t month = 1, uint8_t day = 1,
-                  uint8_t dow = 1, uint8_t hour = 0, uint8_t min = 0, uint8_t sec = 0);
+        RTC_Time();
+        RTC_Time (uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t min, uint8_t sec);
+        RTC_Time (uint16_t year, uint8_t month, uint8_t day, uint8_t dow, uint8_t hour, uint8_t min, uint8_t sec);
         RTC_Time (char* date, char* time);
 
         void setYear(uint16_t y);
@@ -45,6 +44,7 @@ class RTC_Time {
         void setSecond(uint8_t s);
         void setDayOfWeek(void);
         void setDayOfWeek(uint8_t dow);
+        uint8_t setTime(const RTC_Time& t);
 
         uint16_t getYear(void) const    { return 2000 + Y; }
         uint8_t getMonth(void) const    { return M; }
@@ -56,10 +56,13 @@ class RTC_Time {
         uint16_t getDDayOfWeek(uint16_t y, uint8_t m, uint8_t d) const;
         uint16_t getDDayOfWeek(void) const;
 
+        void printTime(void);
+        void operator++();
+        void operator =(const RTC_Time &T);
+        uint8_t DaysInMonth[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
     private:
         static uint8_t conv2d(const char* p);
-        const uint8_t DaysInMonth[12] =
-        {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
         uint8_t Y, M, D, DOW, HH, MM, SS;
 };
 
@@ -67,9 +70,9 @@ class RTC_Time {
 class RTC_DS1307 {
     public:
         RTC_DS1307(void);
-        uint8_t enable(const RTC_Time& t);
-        uint8_t disable(void);
-        uint8_t isRunning(void);
+        bool enable(void);
+        bool disable(void);
+        bool isRunning(void);
 
         static uint8_t setTime(const RTC_Time& t);
         static RTC_Time getTime(void);
@@ -79,7 +82,6 @@ class RTC_DS1307 {
     private:
         static uint8_t bcd2bin(uint8_t val);
         static uint8_t bin2bcd(uint8_t val);
-        bool enabled;
 };
 
 #endif

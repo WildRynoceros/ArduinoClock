@@ -20,6 +20,15 @@ static uint8_t RTC_Time::conv2d(const char* p) {
     return 10 * v + *++p - '0';
 }
 
+RTC_Time:: RTC_Time() {
+    setYear(2000);
+    setMonth(1);
+    setDay(1);
+    setDayOfWeek();
+    setHour(0);
+    setMinute(0);
+    setSecond(0);
+}
 // RTC_Time ////////////////////////////////////////////////////////////////////
 // RTC_Time:RTC_Time(uint16_t year = 2000, uint8_t month = 1, uint8_t day = 1,
 //                   uint8_t hour = 0, uint8_t min = 0, uint8_t sec = 0);
@@ -80,11 +89,11 @@ RTC_Time::RTC_Time (char* date, char* time) {
         case 'N': M = 11; break;
         case 'D': M = 12; break;
     }
-    D = conv2d(date + 4);
+    setDay(conv2d(date + 4));
     setDayOfWeek();
-    HH = conv2d(time);
-    MM = conv2d(time + 3);
-    SS = conv2d(time + 6);
+    setHour(conv2d(time));
+    setMinute(conv2d(time + 3));
+    setSecond(conv2d(time + 6));
 }
 
 void RTC_Time::setYear(uint16_t y) {
@@ -93,6 +102,12 @@ void RTC_Time::setYear(uint16_t y) {
     }
     y -= 2000;
     Y = y;
+    if(Y % 4 == 0) {
+        DaysInMonth[1] = 29;
+    }
+    else {
+        DaysInMonth[1] = 28;
+    }
     setDayOfWeek();
 }
 
@@ -101,27 +116,16 @@ void RTC_Time::setMonth(uint8_t m) {
         m = 1;
     }
     M = m;
-    if(D > DaysInMonth[m]) {
-        D = DaysInMonth[m];
+    if(D > DaysInMonth[M-1]) {
+        D = DaysInMonth[M-1];
     }
 }
 
 void RTC_Time::setDay(uint8_t d) {
-    if(M == 2){
-        if(Y % 4 == 0) {
-            if(d < 1 || d > 29) {
-                d = 1;
-            }
-        }
-        else if(d < 1 || d > 28){
-            d = 1;
-        }
-    }
-    else if(d < 1 || d > DaysInMonth[M]) {
+    if(d < 1 || d > DaysInMonth[M-1]) {
         d = 1;
     }
     D = d;
-    setDayOfWeek();
 }
 
 void RTC_Time::setDayOfWeek(void) {
@@ -162,10 +166,62 @@ uint16_t RTC_Time::getDDayOfWeek(uint16_t y, uint8_t m, uint8_t d) const {
     return 1 + ((y + y/4 - y/100 + y/400 + t[m-1] + (uint16_t)d) % 7);
 }
 
-uint16_t RTC_Time::getDDayOfWeek(void) const {
-    return getDDayOfWeek(Y, M, D);
+void RTC_Time::operator++() {
+    if(++SS >= 60) {
+        SS = 0;
+        if(++MM >= 60) {
+            MM = 0;
+            if(++HH >= 24) {
+                HH = 0;
+                if(++DOW > 7) {
+                    DOW = 1;
+                }
+                if(++D > DaysInMonth[M-1]) {
+                    D = 1;
+                    if(++M > 12) {
+                        M = 1;
+                        if(++Y % 4 == 0) {
+                            DaysInMonth[1] = 29;
+                        }
+                        else {
+                            DaysInMonth[1] = 28;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
+void RTC_Time::operator=(const RTC_Time &T) {
+    Y = T.Y;
+    M = T.M;
+    D = T.D;
+    DOW = T.DOW;
+    HH = T.HH;
+    MM = T.MM;
+    SS = T.SS;
+}
+uint16_t RTC_Time::getDDayOfWeek(void) const {
+    return getDDayOfWeek(getYear(), getMonth(), getDay());
+}
+
+void RTC_Time::printTime(void) {
+    Serial.print(getDayOfWeek());
+    Serial.print(" ");
+    Serial.print(getMonth());
+    Serial.print("/");
+    Serial.print(getDay());
+    Serial.print("/");
+    Serial.print(getYear());
+    Serial.print(" ");
+    Serial.print(getHour());
+    Serial.print(":");
+    Serial.print(getMinute());
+    Serial.print(":");
+    Serial.print(getSecond());
+    Serial.println();
+}
 static uint8_t RTC_DS1307::bcd2bin (uint8_t val) { return val - 6 * (val >> 4); }
 static uint8_t RTC_DS1307::bin2bcd (uint8_t val) { return val + 6 * (val / 10); }
 
@@ -173,35 +229,47 @@ static uint8_t RTC_DS1307::bin2bcd (uint8_t val) { return val + 6 * (val / 10); 
 
 RTC_DS1307::RTC_DS1307(void) {
     Wire.begin();
-    enabled = false;
 }
 
-uint8_t RTC_DS1307::enable(const RTC_Time& t) {
-    if(setTime(t) != 0) {
-        enabled = false;
-        return 1;
-    }
-    else {
-        enabled = true;
-        return 0;
-    }
-}
-
-uint8_t RTC_DS1307::disable(void) {
+bool RTC_DS1307::enable(void) {
     Wire.beginTransmission(DS1307_ADDRESS);
     Wire.write(0x00); //Set the register pointer
-    Wire.write(0x80); //Enable the CH bit at 00h
-    if(Wire.endTransmission() != 0) {
-        enabled = false;
-        return 1;
-    }
-    else {
-        return 0;
-    }
+    Wire.endTransmission();
+
+    Wire.requestFrom(DS1307_ADDRESS, 1); //Request from 0x00
+    uint8_t ss = bcd2bin(Wire.read());
+    ss = ss & 0x7F; //Clear CH bit but preserve seconds
+
+    Wire.beginTransmission(DS1307_ADDRESS);
+    Wire.write(0x00);
+    Wire.write(bin2bcd(ss));
+    return (Wire.endTransmission() == 0);
 }
 
-uint8_t RTC_DS1307::isRunning(void) {
-    return enabled;
+bool RTC_DS1307::disable(void) {
+    Wire.beginTransmission(DS1307_ADDRESS);
+    Wire.write(0x00); //Set the register pointer
+    Wire.endTransmission();
+
+    Wire.requestFrom(DS1307_ADDRESS, 1);
+    uint8_t ss = bcd2bin(Wire.read());
+
+    Wire.beginTransmission(DS1307_ADDRESS);
+    Wire.write(0x00);
+    ss = ss | 0x80; //Enable the CH bit at 00h but preserve the seconds
+    Wire.write(bin2bcd(ss)); //Enable the CH bit at 00h
+    return (Wire.endTransmission() == 0);
+}
+
+bool RTC_DS1307::isRunning(void) {
+    Wire.beginTransmission(DS1307_ADDRESS);
+    Wire.write(0x00);
+    Wire.endTransmission();
+
+    Wire.requestFrom(DS1307_ADDRESS, 1); //Request from 0x00
+    uint8_t ss = bcd2bin(Wire.read());
+    ss = ss >> 7;
+    return !ss;
 }
 
 uint8_t RTC_DS1307::setTime(const RTC_Time& t) {
@@ -210,7 +278,7 @@ uint8_t RTC_DS1307::setTime(const RTC_Time& t) {
     Wire.write(bin2bcd(t.getSecond())); //00h
     Wire.write(bin2bcd(t.getMinute())); //01h
     Wire.write(bin2bcd(t.getHour())); //02h
-    Wire.write(t.getDayOfWeek()); //03h
+    Wire.write(bin2bcd(t.getDayOfWeek())); //03h
     Wire.write(bin2bcd(t.getDay()));  //04h
     Wire.write(bin2bcd(t.getMonth()));  //05h
     Wire.write(bin2bcd(t.getYear() - 2000));  //06h
