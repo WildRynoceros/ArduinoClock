@@ -262,9 +262,7 @@ bool RTC_DS1307::disable(void) {
 }
 
 bool RTC_DS1307::isRunning(void) {
-    Wire.beginTransmission(DS1307_ADDRESS);
-    Wire.write(0x00);
-    Wire.endTransmission();
+    setPointer(0x00);
 
     Wire.requestFrom(DS1307_ADDRESS, 1); //Request from 0x00
     uint8_t ss = bcd2bin(Wire.read());
@@ -283,6 +281,36 @@ uint8_t RTC_DS1307::setTime(const RTC_Time& t) {
     Wire.write(bin2bcd(t.getMonth()));  //05h
     Wire.write(bin2bcd(t.getYear() - 2000));  //06h
     return Wire.endTransmission();
+}
+
+uint8_t RTC_DS1307::setPointer(uint8_t addr) {
+    if(addr > 0x3F) {
+        return -1;
+    }
+    Wire.beginTransmission(DS1307_ADDRESS);
+    Wire.write(addr);
+    return Wire.endTransmission();
+}
+
+uint8_t RTC_DS1307::write(uint8_t addr, uint8_t size, uint8_t* data) {
+    if(addr > 0x3F) {
+        return -1;
+    }
+    Wire.beginTransmission(DS1307_ADDRESS);
+    Wire.write(addr);
+    for(uint8_t i = 0; i < size; i++) {
+        Wire.write(data[i]);
+    }
+    return Wire.endTransmission();
+}
+
+void RTC_DS1307::read(uint8_t addr, uint8_t size, uint8_t* data) {
+    setPointer(addr);
+
+    Wire.requestFrom(DS1307_ADDRESS, size);
+    for(uint8_t i = 0; i < size; i++) {
+        data[i] = Wire.read();
+    }
 }
 
 RTC_Time RTC_DS1307::getTime(void) {

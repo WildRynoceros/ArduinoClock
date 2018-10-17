@@ -79,6 +79,10 @@ class RTC_DS1307 {
 
         void enableOscillator(uint8_t f);
         void disableOscillator(uint8_t val);
+
+        uint8_t setPointer(uint8_t addr);
+        uint8_t write(uint8_t addr, uint8_t size, uint8_t* data);
+        void read(uint8_t addr, uint8_t size, uint8_t* data);
     private:
         static uint8_t bcd2bin(uint8_t val);
         static uint8_t bin2bcd(uint8_t val);
